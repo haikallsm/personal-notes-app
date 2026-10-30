@@ -1,46 +1,47 @@
-import React from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { getActiveNotes } from '../utils/network-data';
+import { searchNotesByTitle } from '../utils';
+import useNotes from '../hooks/useNotes';
+import useTranslate from '../hooks/useTranslate';
 import NoteList from '../components/NoteList';
 import SearchBar from '../components/SearchBar';
 import FloatingLink from '../components/FloatingLink';
-import useNotesStore from '../hooks/useNotesStore';
-import { searchNotesByTitle } from '../utils';
+import Loading from '../components/Loadingtemp';
 
 function HomePage() {
-  const { getActiveNotes } = useNotesStore();
   const [searchParams, setSearchParams] = useSearchParams();
-  const keyword = searchParams.get('q') || '';
+  const { notes, loading, error } = useNotes(getActiveNotes);
+  const t = useTranslate();
 
-  const activeNotes = getActiveNotes();
-  const notes = searchNotesByTitle(activeNotes, keyword);
+  const keyword = searchParams.get('keyword') || '';
 
-  const handleKeywordChange = (value) => {
-    setSearchParams(value.trim() === '' ? {} : { q: value }, { replace: true });
+  const onKeywordChange = (newKeyword) => {
+    setSearchParams(newKeyword ? { keyword: newKeyword } : {});
   };
+
+  const filteredNotes = useMemo(
+    () => searchNotesByTitle(notes, keyword),
+    [notes, keyword],
+  );
 
   return (
     <section className="homepage">
-      <header className="page-header">
-        <h2>Catatan Aktif</h2>
-        <p className="page-header__description">
-          {activeNotes.length} catatan tersimpan dan belum diarsipkan.
-        </p>
-      </header>
-
-      <SearchBar value={keyword} onChange={handleKeywordChange} resultCount={notes.length} />
-
-      <NoteList
-        notes={notes}
-        emptyMessage={
-          keyword.trim() === ''
-            ? 'Tidak ada catatan'
-            : `Tidak ada catatan yang judulnya mengandung "${keyword.trim()}"`
-        }
-      />
-
-      <div className="homepage__action">
-        <FloatingLink to="/notes/new" label="+ Tambah" variant="primary" />
-      </div>
+      <h2>{t('notes.activeTitle')}</h2>
+      <SearchBar keyword={keyword} keywordChange={onKeywordChange} />
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <div className="notes-list-empty" role="alert">
+          <p>{t('notes.loadError')}</p>
+        </div>
+      ) : (
+        <NoteList
+          notes={filteredNotes}
+          emptyMessage={keyword ? t('notes.searchEmpty') : undefined}
+        />
+      )}
+      <FloatingLink to="/notes/new" label="+" title="Tambah catatan baru" ariaLabel="Tambah catatan baru" />
     </section>
   );
 }

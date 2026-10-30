@@ -1,80 +1,87 @@
-import React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import NoteBody from '../components/NoteBody';
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { getNote, deleteNote, archiveNote, unarchiveNote } from '../utils/network-data';
+import useNote from '../hooks/useNote';
+import useTranslate from '../hooks/useTranslate';
 import FormattedDate from '../components/FormattedDate';
-import useNotesStore from '../hooks/useNotesStore';
+import NoteBody from '../components/NoteBody';
+import Loading from '../components/Loadingtemp';
 
 function DetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getNote, deleteNote, archiveNote, unarchiveNote } = useNotesStore();
+  const { note, loading, error } = useNote(getNote, id);
+  const [processing, setProcessing] = useState(false);
+  const t = useTranslate();
 
-  const note = getNote(id);
+  const onDeleteHandler = async () => {
+    if (!window.confirm(t('detail.deleteConfirm'))) {
+      return;
+    }
+
+    setProcessing(true);
+    const { error } = await deleteNote(id);
+    setProcessing(false);
+
+    if (!error) {
+      navigate('/');
+    }
+  };
+
+  const onArchiveHandler = async () => {
+    setProcessing(true);
+    const { error } = await (note.archived ? unarchiveNote(id) : archiveNote(id));
+    setProcessing(false);
+
+    if (!error) {
+      navigate(note.archived ? '/' : '/archives');
+    }
+  };
+
+  if (loading) {
+    return <Loading />;
+  }
 
   if (!note) {
     return (
       <section className="detail-page">
-        <header className="page-header">
-          <h2>Catatan Tidak Ditemukan</h2>
-          <p className="page-header__description">
-            Catatan dengan id &ldquo;{id}&rdquo; tidak lagi tersedia. Mungkin catatan tersebut sudah
-            dihapus.
-          </p>
-        </header>
-        <Link to="/" className="button button--outline">
-          Kembali ke daftar catatan
+        <p>{error ? t('notes.loadError') : t('notes.notFound')}</p>
+        <Link to="/" className="button button--primary">
+          {t('detail.back')}
         </Link>
       </section>
     );
   }
 
-  const handleDelete = () => {
-    const isConfirmed = window.confirm(`Hapus catatan "${note.title}"?`);
-
-    if (isConfirmed) {
-      const fallbackPath = note.archived ? '/archived' : '/';
-      deleteNote(note.id);
-      navigate(fallbackPath, { replace: true });
-    }
-  };
-
-  const handleArchiveToggle = () => {
-    if (note.archived) {
-      unarchiveNote(note.id);
-    } else {
-      archiveNote(note.id);
-    }
-  };
-
   return (
-    <article className="detail-page">
-      <header className="page-header">
-        <Link to={note.archived ? '/archived' : '/'} className="back-link">
-          &larr; Kembali
-        </Link>
-        <h2 className="detail-page__title">{note.title}</h2>
-        <p className="detail-page__createdAt">
-          Dibuat pada <FormattedDate date={note.createdAt} />
-        </p>
-        <p className={`note-badge ${note.archived ? 'note-badge--archived' : ''}`}>
-          {note.archived ? 'Diarsipkan' : 'Aktif'}
-        </p>
-      </header>
-
+    <section className="detail-page">
+      <h3 className="detail-page__title">{note.title}</h3>
+      <p className="detail-page__createdAt">
+        <FormattedDate date={note.createdAt} />
+      </p>
       <NoteBody body={note.body} className="detail-page__body" />
-
-      <div className="detail-page__footer">
-        <button type="button" className="button button--outline" onClick={handleArchiveToggle}>
-          {note.archived ? 'Batalkan Arsip' : 'Arsipkan'}
+      <div className="detail-page__actions">
+        <button
+          type="button"
+          onClick={onArchiveHandler}
+          className="btn-action"
+          disabled={processing}
+        >
+          {note.archived ? t('detail.unarchive') : t('detail.archive')}
         </button>
-        <Link to={`/notes/${note.id}/edit`} className="button button--outline">
-          Ubah
+        <button
+          type="button"
+          onClick={onDeleteHandler}
+          className="btn-action btn-delete"
+          disabled={processing}
+        >
+          {t('detail.delete')}
+        </button>
+        <Link to="/" className="btn-action btn-back">
+          {t('detail.back')}
         </Link>
-        <button type="button" className="button button--danger" onClick={handleDelete}>
-          Hapus
-        </button>
       </div>
-    </article>
+    </section>
   );
 }
 

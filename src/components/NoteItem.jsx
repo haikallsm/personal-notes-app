@@ -1,10 +1,12 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { getExcerpt, getPlainText } from '../utils';
 import FormattedDate from './FormattedDate';
+import useTranslate from '../hooks/useTranslate';
 
 function NoteItem({ note }) {
   const { id, title, body, createdAt } = note;
+  const t = useTranslate();
   const excerpt = getExcerpt(getPlainText(body));
 
   return (
@@ -15,10 +17,21 @@ function NoteItem({ note }) {
           <FormattedDate date={createdAt} />
         </p>
         <p className="note-item__body">{excerpt}</p>
-        <span className="note-item__read-more">Baca selengkapnya &rarr;</span>
+        <span className="note-item__read-more">
+          {t('notes.readMore')} &rarr;
+        </span>
       </Link>
     </article>
   );
 }
+
+NoteItem.propTypes = {
+  note: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    body: PropTypes.string,
+    createdAt: PropTypes.string,
+  }).isRequired,
+};
 
 export default NoteItem;

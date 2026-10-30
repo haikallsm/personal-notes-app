@@ -1,4 +1,4 @@
-const showFormattedDate = (date) => {
+const showFormattedDate = (date, locale = 'id') => {
   const options = {
     weekday: 'long',
     year: 'numeric',
@@ -6,7 +6,9 @@ const showFormattedDate = (date) => {
     day: 'numeric',
   };
 
-  return new Date(date).toLocaleDateString('id-ID', options);
+  const localeCode = locale === 'en' ? 'en-US' : 'id-ID';
+
+  return new Date(date).toLocaleDateString(localeCode, options);
 };
 
 const getPlainText = (html = '') => {

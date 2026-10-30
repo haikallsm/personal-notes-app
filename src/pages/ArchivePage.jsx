@@ -1,44 +1,45 @@
-import React from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { getArchivedNotes } from '../utils/network-data';
+import { searchNotesByTitle } from '../utils';
+import useNotes from '../hooks/useNotes';
+import useTranslate from '../hooks/useTranslate';
 import NoteList from '../components/NoteList';
 import SearchBar from '../components/SearchBar';
-import FloatingLink from '../components/FloatingLink';
-import useNotesStore from '../hooks/useNotesStore';
-import { searchNotesByTitle } from '../utils';
+import Loading from '../components/Loadingtemp';
 
 function ArchivePage() {
-  const { getArchivedNotes } = useNotesStore();
   const [searchParams, setSearchParams] = useSearchParams();
-  const keyword = searchParams.get('q') || '';
+  const { notes, loading, error } = useNotes(getArchivedNotes);
+  const t = useTranslate();
 
-  const archivedNotes = getArchivedNotes();
-  const notes = searchNotesByTitle(archivedNotes, keyword);
+  const keyword = searchParams.get('keyword') || '';
 
-  const handleKeywordChange = (value) => {
-    setSearchParams(value.trim() === '' ? {} : { q: value }, { replace: true });
+  const onKeywordChange = (newKeyword) => {
+    setSearchParams(newKeyword ? { keyword: newKeyword } : {});
   };
 
+  const filteredNotes = useMemo(
+    () => searchNotesByTitle(notes, keyword),
+    [notes, keyword],
+  );
+
   return (
-    <section className="homepage">
-      <header className="page-header">
-        <h2>Arsip Catatan</h2>
-        <p className="page-header__description">{archivedNotes.length} catatan telah diarsipkan.</p>
-      </header>
-
-      <SearchBar value={keyword} onChange={handleKeywordChange} resultCount={notes.length} />
-
-      <NoteList
-        notes={notes}
-        emptyMessage={
-          keyword.trim() === ''
-            ? 'Arsip kosong'
-            : `Tidak ada arsip yang mengandung "${keyword.trim()}"`
-        }
-      />
-
-      <div className="homepage__action">
-        <FloatingLink to="/" label="← Catatan" variant="secondary" />
-      </div>
+    <section className="archive-page">
+      <h2>{t('notes.archivedTitle')}</h2>
+      <SearchBar keyword={keyword} keywordChange={onKeywordChange} />
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <div className="notes-list-empty" role="alert">
+          <p>{t('notes.loadError')}</p>
+        </div>
+      ) : (
+        <NoteList
+          notes={filteredNotes}
+          emptyMessage={keyword ? t('notes.searchEmpty') : t('notes.emptyArchived')}
+        />
+      )}
     </section>
   );
 }

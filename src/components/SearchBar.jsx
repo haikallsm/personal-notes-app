@@ -1,29 +1,31 @@
-import React from 'react';
+import PropTypes from 'prop-types';
+import useTranslate from '../hooks/useTranslate';
 
-function SearchBar({ value, onChange, resultCount }) {
-  const handleChange = (event) => {
-    onChange(event.target.value);
+function SearchBar({ keyword = '', keywordChange }) {
+  const t = useTranslate();
+
+  const handleInputChange = (event) => {
+    const value = event.target.value;
+    if (typeof keywordChange === 'function') {
+      keywordChange(value);
+    }
   };
 
   return (
-    <div className="search-bar">
-      <label htmlFor="search-input" className="search-bar__label">
-        Cari catatan
-      </label>
+    <section className="search-bar">
       <input
-        id="search-input"
-        type="search"
-        value={value}
-        onChange={handleChange}
-        placeholder="Cari berdasarkan judul catatan..."
+        type="text"
+        placeholder={t('notes.searchPlaceholder')}
+        value={keyword || ''}
+        onChange={handleInputChange}
       />
-      {value.trim() !== '' && (
-        <p className="search-bar__result">
-          {resultCount} catatan ditemukan untuk &ldquo;{value.trim()}&rdquo;
-        </p>
-      )}
-    </div>
+    </section>
   );
 }
+
+SearchBar.propTypes = {
+  keyword: PropTypes.string,
+  keywordChange: PropTypes.func.isRequired,
+};
 
 export default SearchBar;
